@@ -2,6 +2,8 @@ package com.springboot.blog.config;
 
 import com.springboot.blog.security.JwtAuthenticationEntryPoint;
 import com.springboot.blog.security.JwtAuthenticationFilter;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -10,6 +12,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,6 +25,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableMethodSecurity
+@SecurityScheme(
+        name = "Bearer Authentication",
+        type = SecuritySchemeType.HTTP,
+        bearerFormat = "JWT",
+        scheme = "bearer"
+)
 public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private JwtAuthenticationEntryPoint authenticationEntryPoint;
@@ -49,22 +58,18 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf((csrf) -> {
-            try {
-                csrf.disable()
-                        .authorizeHttpRequests((authorize) -> authorize
-                                .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
-                                .anyRequest().authenticated()
-                        ).exceptionHandling(exception -> exception
-                                .authenticationEntryPoint(authenticationEntryPoint)
-                        ).sessionManagement(session -> session
-                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                        ).httpBasic(Customizer.withDefaults());
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
+        http.csrf(AbstractHttpConfigurer::disable).authorizeHttpRequests((authorize) -> authorize
+                .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/swagger-ui/**").permitAll()
+                .requestMatchers("/v3/api-docs/**").permitAll()
+                .anyRequest().authenticated()
+
+        ).exceptionHandling(exception -> exception
+                .authenticationEntryPoint(authenticationEntryPoint)
+        ).sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        );
 
         http.addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
