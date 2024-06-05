@@ -13,6 +13,7 @@ import java.util.Set;
         description = "This is the data transfer object for the Post entity"
 )
 public class PostDto {
+    @Schema(description = "ID of the post", example = "1")
     private long id;
 
     @Schema(description = "Title of the post", example = "Spring Boot Rest API")
